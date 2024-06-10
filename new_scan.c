@@ -23,7 +23,6 @@ const int BSS_INFOS=10; //the maximum amounts of APs (Access Points) we want to 
 int main(int argc, char **argv)
 {
 	int pipe_fd;
-	char buffer[BUFFSIZE];
 	mkfifo("/tmp/data_x",0666);
 	struct wifi_scan *wifi=NULL;    //this stores all the library information
 	struct bss_info bss[BSS_INFOS]; //this is where we are going to keep informatoin about APs (Access Points)
@@ -41,6 +40,7 @@ int main(int argc, char **argv)
 	int j = 0;
 	while(1)
 	{
+	char buffer[BUFFSIZE] = {'\0'};
 		if ( (pipe_fd = open("/tmp/data_x", O_WRONLY)) < 0) {
 			printf("Pipe error\n");
 			continue;
@@ -52,14 +52,17 @@ int main(int argc, char **argv)
 		if(status<0)
 			perror("Unable to get scan data");
 		else //wifi_scan_all returns the number of found stations, it may be greater than BSS_INFOS that's why we test for both in the loop
-			for(i=0;i<status && i<BSS_INFOS;++i)	
-				sprintf(buffer, "%s,%s,%d,%u,%d#",
+			for(i=0;i<status && i<BSS_INFOS;++i) {	
+				char temp[256] = {'\0'};
+				sprintf(temp, "%s,%s,%d,%u,%d#",
 				   bssid_to_string(bss[i].bssid, mac), 
 				   bss[i].ssid,  
 				   bss[i].signal_mbm/100, 
 				   bss[i].frequency,
 				   bss[i].seen_ms_ago 
 				);
+				strcat(buffer, temp);
+			}
 
 		printf("%d \n", j);
 		j++;
@@ -68,6 +71,7 @@ int main(int argc, char **argv)
 			printf("Write error \n");
 		}
 
+		close(pipe_fd);
 		sleep(2);
 	}
 	
